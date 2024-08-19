@@ -1,1 +1,3 @@
-ÿþ
+Flask
+Flask-Cors
+gunicorn
