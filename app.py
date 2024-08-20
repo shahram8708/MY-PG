@@ -7,8 +7,47 @@ from email.mime.base import MIMEBase
 from email import encoders
 import mimetypes
 from flask_cors import CORS
-import os
 from flask import url_for
+import json
+from datetime import datetime, timedelta
+import os
+
+APPLICATIONS_FILE = 'applications.json'
+
+def get_current_time():
+    return datetime.now().isoformat()
+
+def save_applications():
+    with open(APPLICATIONS_FILE, 'w') as f:
+        json.dump(applications, f)
+
+def load_applications():
+    global applications
+    if os.path.exists(APPLICATIONS_FILE):
+        with open(APPLICATIONS_FILE, 'r') as f:
+            applications = json.load(f)
+
+def is_application_expired(timestamp, hours=48):
+    application_time = datetime.fromisoformat(timestamp)
+    return datetime.now() - application_time > timedelta(hours=hours)
+
+def add_application(app_id, pg_details, user_details):
+    timestamp = get_current_time()
+    applications[app_id] = {
+        'pg_details': pg_details,
+        'user_details': user_details,
+        'timestamp': timestamp,
+        'status': 'pending'
+    }
+    save_applications()
+
+def is_application_expired(timestamp, hours=48):
+    try:
+        application_time = datetime.fromisoformat(timestamp)
+    except ValueError:
+        return True  # Assuming expired if timestamp format is invalid
+
+    return datetime.now() - application_time > timedelta(hours=hours)
 
 app = Flask(__name__)
 CORS(app)
@@ -261,11 +300,21 @@ def confirm_application():
 
     if not application:
         return "Application not found!", 404
+    
+    if 'timestamp' not in application:
+        application['timestamp'] = get_current_time()
+        save_applications()
+    
+    print(f"Application Data: {application}")
+
+    if is_application_expired(application['timestamp']):
+        return "Application confirmation window has expired.", 400
 
     pg_details = application['pg_details']
     user_details = application['user_details']
 
     application['status'] = 'confirmed'
+    save_applications()
 
     user_subject = 'PG Application Status'
     user_body = f"Hi {user_details['Name']},\n\nCongratulations! Your application has been approved.\n\nPG Details:\n" + \
@@ -308,11 +357,21 @@ def reject_application():
 
     if not application:
         return "Application not found!", 404
+    
+    if 'timestamp' not in application:
+        application['timestamp'] = get_current_time()
+        save_applications()
+    
+    print(f"Application Data: {application}")
+
+    if is_application_expired(application['timestamp']):
+        return "Application confirmation window has expired.", 400
 
     pg_details = application['pg_details']
     user_details = application['user_details']
 
     application['status'] = 'rejected'
+    save_applications()
 
     user_subject = 'PG Application Status'
     user_body = f"Hi {user_details['Name']},\n\nUnfortunately, your application has been rejected.\n\nPG Details:\n" + \
@@ -515,4 +574,5 @@ def submit_query():
     return jsonify({'success': True, 'message': 'Query submitted successfully'})
 
 if __name__ == '__main__':
+    load_applications()
     app.run(debug=True)
