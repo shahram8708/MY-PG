@@ -45,7 +45,7 @@ def is_application_expired(timestamp, hours=48):
     try:
         application_time = datetime.fromisoformat(timestamp)
     except ValueError:
-        return True  # Assuming expired if timestamp format is invalid
+        return True  
 
     return datetime.now() - application_time > timedelta(hours=hours)
 
@@ -225,6 +225,8 @@ def apply():
         'Duration': data.get('duration'),
     }
 
+    url = f"mypgspace.netlify.app/display.html?pgName={pg_details['PG Name']}&country={pg_details['Country']}&state={pg_details['State']}&city={pg_details['City']}&area={pg_details['Area']}&roomType={pg_details['Room Type']}&food={pg_details['Food']}&roomSize={pg_details['Room Size']}&pgPrice={pg_details['Price per Month']}&address={pg_details['Address']}&facilities={pg_details['Facilities']}&rules={pg_details['Rules']}&pgPhone={pg_details['PG Phone']}&pgEmail={pg_details['PG Email']}&userName={user_details['Name']}&userPhone={user_details['Phone']}&userEmail={user_details['Email']}&duration={user_details['Duration']}"
+
     application_id = str(len(applications) + 1) 
     applications[application_id] = {
         'pg_details': pg_details,
@@ -271,7 +273,9 @@ def apply():
     <ul>
         {''.join([f'<li>{key}: {value}</li>' for key, value in user_details.items() if key not in ['Phone', 'Email']])}
     </ul>
+
     <p>Please confirm or reject the application:</p>
+    <p>Please <a href="{url}">click here</a> to view the full details. After reviewing, please confirm or reject your decision.</p>
     <a href="{confirm_url}">Confirm</a> | <a href="{reject_url}">Reject</a>
     <p>We would appreciate your feedback. Please provide it here: <a href="https://mypgspace.netlify.app/feedback">Feedback</a></p>
     <p>Visit here: <a href="https://mypgspace.netlify.app/">MY PG 🏠</a></p>
