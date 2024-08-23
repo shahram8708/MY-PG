@@ -581,7 +581,7 @@ def pg_accommodation_request():
                  '\n'.join([f"{key}: {value}" for key, value in details.items()]) + \
                  "\n\nUser Details:\n" + \
                  '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
-                "Best regards,\nMY PG 🏠 Team"
+                "\n\nBest regards,\nMY PG 🏠 Team"
 
     send_email(email, 'Details Confirmation', body_user_owner)
 
