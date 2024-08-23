@@ -194,6 +194,58 @@ def send_email(to_email, subject, body, attachments=None, html_body=None):
 
 applications = {}
 
+def handle_leave_pg_form_submission(user_details, pg_name):
+    user_subject = "Confirmation: You have left the PG"
+    user_body = (
+        f"Dear {user_details['name']},\n\n"
+        f"You have successfully left {pg_name}. Thank you for staying with us!\n\n"
+        f"Here are the details we have on record:\n"
+        f"Name: {user_details['name']}\n"
+        f"Email: {user_details['email']}\n"
+        f"Phone Number: {user_details['phone']}\n"
+        f"PG Name: {pg_name}\n\n"
+        f"If you wish to try another PG, you can apply quickly with an exclusive 80% discount here: "
+        f"https://mypgspace.netlify.app/\n\n"
+        f"We would appreciate your feedback. Please provide it here: "
+        f"https://mypgspace.netlify.app/feedback\n\n"
+        f"Visit our website here: https://mypgspace.netlify.app/\n\n"
+        f"Please make sure to read our terms and conditions here: "
+        f"https://mypgspace.netlify.app/terms\n\n"
+        f"Best regards,\nMY PG 🏠 Team"
+    )
+    
+    admin_subject = "User has left the PG"
+    admin_body = (
+        f"Hi Admin,\n\n"
+        f"A user has left {pg_name}. Here are the details:\n\n"
+        f"Name: {user_details['name']}\n"
+        f"Email: {user_details['email']}\n"
+        f"Phone Number: {user_details['phone']}\n"
+        f"PG Name: {pg_name}\n\n"
+        f"Please take the necessary follow-up actions.\n\n"
+        f"Best regards,\nMY PG 🏠 Team"
+    )
+
+    send_email(user_details['email'], user_subject, user_body)
+
+    send_email(ADMIN_EMAIL, admin_subject, admin_body)
+
+@app.route('/submit-leave-pg', methods=['POST'])
+def submit_leave_pg():
+    data = request.get_json()
+    user_details = data.get('userDetails')
+    pg_name = data.get('pgName')
+
+    if user_details and pg_name:
+        try:
+            handle_leave_pg_form_submission(user_details, pg_name)
+            return jsonify({'status': 'success'}), 200
+        except Exception as e:
+            print(f"Error: {e}")
+            return jsonify({'status': 'failure', 'message': str(e)}), 500
+    else:
+        return jsonify({'status': 'failure', 'message': 'Invalid input'}), 400
+
 @app.route('/apply', methods=['POST'])
 def apply():
     data = request.form
@@ -321,15 +373,21 @@ def confirm_application():
     save_applications()
 
     user_subject = 'PG Application Status'
-    user_body = f"Hi {user_details['Name']},\n\nCongratulations! Your application has been approved.\n\nPG Details:\n" + \
-            '\n'.join([f"{key}: {value}" for key, value in pg_details.items()]) + \
-            "\n\nYour details are:\n" + \
-            '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
-            "\n\nYou have been allocated a PG. You can now move in by visiting the address provided. The contact details of the PG are also given; please reach out to them if needed.\n\n" + \
-            "We would love to hear your feedback. Please provide it here: https://mypgspace.netlify.app/feedback\n\n" + \
-            "\n\nVisit here: https://mypgspace.netlify.app/" + \
-            "\n\nPlease make sure to read our terms and conditions here: https://mypgspace.netlify.app/terms" + \
-            "\n\nBest regards,\nMY PG 🏠 Team"
+    user_body = (
+            f"Hi {user_details['Name']},\n\n"
+            f"Congratulations! Your application has been approved.\n\n"
+            f"PG Details:\n"
+            + '\n'.join([f"{key}: {value}" for key, value in pg_details.items()]) +
+            "\n\nYour details are:\n"
+            + '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) +
+            "\n\nYou have been successfully allocated a PG. You can now move in by visiting the address provided. The contact details of the PG are also included; please reach out to them if needed.\n\n"
+            "We would appreciate your feedback. Please provide it here: https://mypgspace.netlify.app/feedback\n\n"
+            "Visit our website here: https://mypgspace.netlify.app/\n\n"
+            "Please ensure to read our terms and conditions here: https://mypgspace.netlify.app/terms\n\n"
+            "When you decide to leave the PG, please make sure to fill out this form to complete the process: https://mypgspace.netlify.app/leave\n\n"
+            "Additionally, save this email for future reference and verification purposes. It contains important details you may need to show to the PG owner for verification. Keep it safe for as long as you stay in the PG.\n\n"
+            "Best regards,\nMY PG 🏠 Team"
+        )
 
     send_email(user_details['Email'], user_subject, user_body)
 
@@ -383,6 +441,8 @@ def reject_application():
             "\n\nYour details were:\n" + \
             '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
             "\n\nWe're sorry, but there is no availability in our PG at the moment, which is why your application couldn't be accepted. However, you can apply to another PG.\n\n" + \
+            "Unfortunately, the PG you were interested in is no longer available. However, I am confident that you will find another suitable PG that meets your needs. Please apply for an alternative PG through the following link: https://mypgspace.netlify.app/.\n\n" + \
+            "We appreciate your understanding and are here to help you find the perfect place to stay.\n\n" + \
             "We would appreciate your feedback. Please provide it here: https://mypgspace.netlify.app/feedback\n\n" + \
             "Visit here: https://mypgspace.netlify.app/\n\n" + \
             "Please make sure to read our terms and conditions here: https://mypgspace.netlify.app/terms\n\n" + \
