@@ -230,6 +230,59 @@ def handle_leave_pg_form_submission(user_details, pg_name):
 
     send_email(ADMIN_EMAIL, admin_subject, admin_body)
 
+def handle_leave_food_form_submission(user_details, Food_name):
+    user_subject = "Confirmation: You have left the Food"
+    user_body = (
+        f"Dear {user_details['name']},\n\n"
+        f"You have successfully left {Food_name}. Thank you for staying with us!\n\n"
+        f"Here are the details we have on record:\n"
+        f"Name: {user_details['name']}\n"
+        f"Email: {user_details['email']}\n"
+        f"Phone Number: {user_details['phone']}\n"
+        f"Food Name: {Food_name}\n\n"
+        f"If you wish to try another Food, you can apply quickly with an exclusive 80% discount here: "
+        f"https://mypgspace.netlify.app/food/\n\n"
+        f"We would appreciate your feedback. Please provide it here: "
+        f"https://mypgspace.netlify.app/feedback\n\n"
+        f"Visit our website here: https://mypgspace.netlify.app/\n\n"
+        f"Please make sure to read our terms and conditions here: "
+        f"https://mypgspace.netlify.app/terms\n\n"
+        f"Best regards,\nMY PG 🏠 Team"
+    )
+    
+    admin_subject = "User has left the Food"
+    admin_body = (
+        f"Hi Admin,\n\n"
+        f"A user has left {Food_name}. Here are the details:\n\n"
+        f"Name: {user_details['name']}\n"
+        f"Email: {user_details['email']}\n"
+        f"Phone Number: {user_details['phone']}\n"
+        f"Food Name: {Food_name}\n\n"
+        f"Please take the necessary follow-up actions.\n\n"
+        f"Best regards,\nMY PG 🏠 Team"
+    )
+
+    send_email(user_details['email'], user_subject, user_body)
+
+    send_email(ADMIN_EMAIL, admin_subject, admin_body)
+    
+    
+@app.route('/submit-leave-food', methods=['POST'])
+def submit_leave_food():
+    data = request.get_json()
+    user_details = data.get('userDetails')
+    Food_name = data.get('FoodName')
+
+    if user_details and Food_name:
+        try:
+            handle_leave_food_form_submission(user_details, Food_name)
+            return jsonify({'status': 'success'}), 200
+        except Exception as e:
+            print(f"Error: {e}")
+            return jsonify({'status': 'failure', 'message': str(e)}), 500
+    else:
+        return jsonify({'status': 'failure', 'message': 'Invalid input'}), 400
+
 @app.route('/submit-leave-pg', methods=['POST'])
 def submit_leave_pg():
     data = request.get_json()
@@ -346,6 +399,94 @@ def apply():
     
     send_email(pg_email, 'New Application Received', body_pg, attachments, html_body=html_body_pg)
     send_email(admin_email, 'New Application Received', body_admin, attachments)
+
+    return jsonify({'success': True, 'message': 'Application submitted successfully'})
+
+@app.route('/food_apply', methods=['POST'])
+def food_apply():
+    data = request.form
+    user_email = data.get('userEmail')
+    food_email = data.get('FoodEmail')
+    admin_email = ADMIN_EMAIL
+
+    food_details = {
+        'Food Name': data.get('FoodName'),
+        'City': data.get('city'),
+        'Area': data.get('area'),
+        'Food': data.get('food'),
+        'Total Price': data.get('FoodTotalPrice'),
+        'Items': data.get('items'),
+        'State': data.get('state'),
+        'Country': data.get('country'),
+        'Food Phone': data.get('FoodPhone'),
+        'Food Email': data.get('FoodEmail')
+    }
+
+    user_details = {
+        'Name': data.get('userName'),
+        'Phone': data.get('userPhone'),
+        'Email': data.get('userEmail'),
+        'Duration': data.get('duration'),
+    }
+
+    url = f"mypgspace.netlify.app/food-display.html?FoodName={food_details['Food Name']}&country={food_details['Country']}&state={food_details['State']}&city={food_details['City']}&area={food_details['Area']}&food={food_details['Food']}&FoodTotalPrice={food_details['Total Price']}&items={food_details['Items']}&FoodPhone={food_details['Food Phone']}&FoodEmail={food_details['Food Email']}&userName={user_details['Name']}&userPhone={user_details['Phone']}&userEmail={user_details['Email']}&duration={user_details['Duration']}"
+
+    application_id = str(len(applications) + 1) 
+    applications[application_id] = {
+        'food_details': food_details,
+        'user_details': user_details,
+        'status': 'pending'
+    }
+
+    body_user = f"Hi {user_details['Name']},\n\nYour application has been received.\n\nFood Details:\n" + \
+            '\n'.join([f"{key}: {value}" for key, value in food_details.items() if key not in ['Food Phone', 'Food Email']]) + \
+            "\n\nUser Details:\n" + \
+            '\n'.join([f"{key}: {value}" for key, value in user_details.items() if key not in ['Phone', 'Email']]) + \
+            "\n\nNow, you will need to wait up to 48 hours for approval, but you should receive it soon.\n\n" + \
+                    "We would appreciate your feedback. Please provide it here: https://mypgspace.netlify.app/feedback\n\n" + \
+                    "Visit here: https://mypgspace.netlify.app/\n\n" + \
+                    "Please make sure to read our terms and conditions here: https://mypgspace.netlify.app/terms\n\n" + \
+                    "Best regards,\nMY PG 🏠 Team"
+
+    body_food = f"Hi food Owner,\n\nA new application has been received.\n\nFood Details:\n" + \
+              '\n'.join([f"{key}: {value}" for key, value in food_details.items()]) + \
+              "\n\nUser Details:\n" + \
+              '\n'.join([f"{key}: {value}" for key, value in user_details.items() if key not in ['Phone', 'Email']]) + \
+            "\n\nBest regards,\nMY PG 🏠 Team"
+
+    body_admin = f"Hi Admin,\n\nA new application has been received.\n\nFood Details:\n" + \
+                 '\n'.join([f"{key}: {value}" for key, value in food_details.items()]) + \
+                 "\n\nUser Details:\n" + \
+                 '\n'.join([f"{key}: {value}" for key, value in user_details.items()])
+
+    send_email(user_email, 'Application Confirmation', body_user)
+    
+    html_body_food = f"""
+<html>
+<body>
+    <p>Hi Food Owner,</p>
+    <p>A new application has been received.</p>
+    <p>Food Details:</p>
+    <ul>
+        {''.join([f'<li>{key}: {value}</li>' for key, value in food_details.items()])}
+    </ul>
+    <p>User Details:</p>
+    <ul>
+        {''.join([f'<li>{key}: {value}</li>' for key, value in user_details.items() if key not in ['Phone', 'Email']])}
+    </ul>
+
+    <p>Please confirm or reject the application:</p>
+    <p>Please <a href="{url}">click here</a> to view the full details. After reviewing, please confirm or reject your decision.</p>
+    <p>We would appreciate your feedback. Please provide it here: <a href="https://mypgspace.netlify.app/feedback">Feedback</a></p>
+    <p>Visit here: <a href="https://mypgspace.netlify.app/">MY PG 🏠</a></p>
+    <p>Please make sure to read our terms and conditions here: <a href="https://mypgspace.netlify.app/terms">Terms and Conditions</a></p>
+    <p>Best regards,<br>MY PG 🏠 Team</p>
+</body>
+</html>
+"""
+    
+    send_email(food_email, 'New Application Received', body_food, html_body=html_body_food)
+    send_email(admin_email, 'New Application Received', body_admin)
 
     return jsonify({'success': True, 'message': 'Application submitted successfully'})
 
@@ -528,7 +669,7 @@ def upload_pg_details():
                  '\n'.join([f"{key}: {value}" for key, value in pg_details.items()]) + \
                  "\n\nUser Details:\n" + \
                  '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
-                "Best regards,\nMY PG 🏠 Team"
+                "\n\nBest regards,\nMY PG 🏠 Team"
 
     attachments = {}
     for file_key in ['images']:  
@@ -543,6 +684,59 @@ def upload_pg_details():
     send_email(admin_email, 'New Application Received', body_admin, attachments)
 
     return jsonify({'success': True, 'message': 'PG details submitted successfully'})
+
+@app.route('/upload-food-details', methods=['POST'])
+def upload_food_details():
+    Food_email = request.form.get('ownerEmail')
+    admin_email = ADMIN_EMAIL 
+
+    Food_details = {
+        'Food Name': request.form.get('FoodName'),
+        'Country': request.form.get('country'),
+        'State': request.form.get('state'),
+        'City': request.form.get('city'),
+        'Area': request.form.get('area'),
+        'Food': request.form.get('food'),
+        'Price': request.form.get('currentPrice'),
+        'Items': request.form.get('items'),
+    }
+
+    user_details = {
+        'Name': request.form.get('ownerName'),
+        'Phone': request.form.get('ownerPhone'),
+        'Email': request.form.get('ownerEmail'),
+    }
+
+    body_Food_owner = f"Hi {user_details['Name']},\n\nThank you for submitting the details of your Food.\n\n" + \
+                "We have received the following details:\n\nFood Details:\n" + \
+                '\n'.join([f"{key}: {value}" for key, value in Food_details.items()]) + \
+                "\n\nYour Details:\n" + \
+                '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
+                "\n\nIf a user applies for your Food, we will notify you via email. Please make sure to confirm the application promptly.\n\n" + \
+                "We would appreciate your feedback. Please provide it here: https://mypgspace.netlify.app/feedback\n\n" + \
+                "Visit here: https://mypgspace.netlify.app/\n\n" + \
+                "Please make sure to read our terms and conditions here: https://mypgspace.netlify.app/terms\n\n" + \
+                "Best regards,\nMY PG 🏠 Team"
+
+    body_admin = f"Hi Admin,\n\nA new application has been received.\n\nFood Details:\n" + \
+                 '\n'.join([f"{key}: {value}" for key, value in Food_details.items()]) + \
+                 "\n\nUser Details:\n" + \
+                 '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
+                "\n\nBest regards,\nMY PG 🏠 Team"
+
+    attachments = {}
+    for file_key in ['images']:  
+        if file_key in request.files:
+            files = request.files.getlist(file_key)
+            for file in files:
+                if file and file.filename:
+                    attachments[file.filename] = file
+
+    send_email(Food_email, 'Food Details Confirmation', body_Food_owner)
+
+    send_email(admin_email, 'New Application Received', body_admin, attachments)
+
+    return jsonify({'success': True, 'message': 'Food details submitted successfully'})
 
 @app.route('/pg-accommodation-request', methods=['POST'])
 def pg_accommodation_request():
@@ -578,6 +772,49 @@ def pg_accommodation_request():
                     "Best regards,\nMY PG 🏠 Team"
 
     body_admin = f"Hi Admin,\n\nA new PG request has been received.\n\nDetails:\n" + \
+                 '\n'.join([f"{key}: {value}" for key, value in details.items()]) + \
+                 "\n\nUser Details:\n" + \
+                 '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
+                "\n\nBest regards,\nMY PG 🏠 Team"
+
+    send_email(email, 'Details Confirmation', body_user_owner)
+
+    send_email(admin_email, 'New Application Received', body_admin)
+
+    return jsonify({'success': True, 'message': 'Your details submitted successfully'})
+
+@app.route('/food-accommodation-request', methods=['POST'])
+def food_accommodation_request():
+    email = request.form.get('Email')
+    admin_email = ADMIN_EMAIL  
+
+    details = {
+        'Name': request.form.get('Name'),
+        'Country': request.form.get('country'),
+        'State': request.form.get('state'),
+        'City': request.form.get('city'),
+        'Area': request.form.get('area'),
+        'Food': request.form.get('food'),
+    }
+
+    user_details = {
+        'Name': request.form.get('Name'),
+        'Phone': request.form.get('Phone'),
+        'Email': request.form.get('Email'),
+    }
+
+    body_user_owner = f"Hi {user_details['Name']},\n\nThank you for submitting the request. When a Food becomes available, we will inform you.\n\n" + \
+                    "We have received the following details:\n\nDetails:\n" + \
+                    '\n'.join([f"{key}: {value}" for key, value in details.items()]) + \
+                    "\n\nYour Details:\n" + \
+                    '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
+                    "\n\nWe will certainly contact you if we find a suitable Food based on your request. We apologize for the current lack of availability.\n\n" + \
+                    "We would appreciate your feedback. Please provide it here: https://mypgspace.netlify.app/feedback\n\n" + \
+                    "Visit here: https://mypgspace.netlify.app/\n\n" + \
+                    "Please make sure to read our terms and conditions here: https://mypgspace.netlify.app/terms\n\n" + \
+                    "Best regards,\nMY PG 🏠 Team"
+
+    body_admin = f"Hi Admin,\n\nA new Food request has been received.\n\nDetails:\n" + \
                  '\n'.join([f"{key}: {value}" for key, value in details.items()]) + \
                  "\n\nUser Details:\n" + \
                  '\n'.join([f"{key}: {value}" for key, value in user_details.items()]) + \
