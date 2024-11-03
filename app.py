@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import random
 import smtplib
 from email.mime.text import MIMEText
@@ -13,6 +13,10 @@ from datetime import datetime, timedelta
 import os
 
 APPLICATIONS_FILE = 'applications.json'
+
+@app.route('/')
+def home():
+    return render_template('index.html')
 
 def get_current_time():
     return datetime.now().isoformat()
