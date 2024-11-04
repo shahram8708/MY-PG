@@ -14,12 +14,6 @@ import os
 
 APPLICATIONS_FILE = 'applications.json'
 
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return render_template('index.html')
-
 def get_current_time():
     return datetime.now().isoformat()
 
@@ -66,6 +60,10 @@ SENDER_EMAIL = 'mypghelp@gmail.com'
 ADMIN_EMAIL = 'mypghelp@gmail.com' 
 
 otp_storage = {}
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/send-otp', methods=['POST'])
 def send_otp():
